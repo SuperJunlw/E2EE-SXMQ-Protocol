@@ -1,1 +1,1 @@
-# ECS235A-Project
+# E2EE-SXMQ-Protocol
