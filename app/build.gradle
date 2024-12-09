@@ -15,6 +15,8 @@ repositories {
     mavenCentral()
 }
 
+
+
 dependencies {
     // Use JUnit Jupiter for testing.
     testImplementation libs.junit.jupiter
@@ -23,6 +25,9 @@ dependencies {
 
     // This dependency is used by the application.
     implementation libs.guava
+
+    //Using nacl library for the Cryptographic algorithms
+    implementation group: 'org.purejava', name: 'tweetnacl-java', version: '1.1.2'
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
