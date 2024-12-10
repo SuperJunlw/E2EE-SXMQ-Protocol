@@ -1,5 +1,7 @@
 package org.example;
 
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 
 public class Commands {
@@ -7,10 +9,12 @@ public class Commands {
                                   List<String> hostnames,
                                   String queueId,
                                   String versionRange,
-                                  String recipientDhPublicKey)
+                                  byte[] recipientDhPublicKey)
     {
         //create a string of the host names
         String hostNames = String.join(",", hostnames);
+
+        String keyBase64 = Base64.getEncoder().encodeToString(recipientDhPublicKey);
 
         //combine the parts to create the uri
         StringBuilder sb = new StringBuilder();
@@ -23,7 +27,7 @@ public class Commands {
                 .append("?v=")
                 .append(versionRange)
                 .append("&dh=")
-                .append(recipientDhPublicKey);
+                .append(keyBase64);
 
         return sb.toString();
     }
@@ -35,34 +39,40 @@ public class Commands {
     }
 
     // Recipient Commands
-    public static String create(String recipientAuthPublicKey,
-                                String recipientDhPublicKey,
+    public static String create(byte[] recipientAuthPublicKey,
+                                byte[] recipientDhPublicKey,
                                 String basicAuth,
                                 String subscribeMode,
                                 String sndSecure) {
 
+        String authKeyBase64 = Base64.getEncoder().encodeToString(recipientAuthPublicKey);
+        String DHKeyBase64 = Base64.getEncoder().encodeToString(recipientDhPublicKey);
+
         //create the NEW command string to return
         StringBuilder sb = new StringBuilder();
         sb.append("NEW")
-                .append(recipientAuthPublicKey)
-                .append(recipientDhPublicKey)
+                .append(authKeyBase64)
+                .append(DHKeyBase64)
                 .append(basicAuth)
                 .append(subscribeMode)
                 .append(sndSecure);
 
         return sb.toString();
     }
-    public static String subscribe(String queueId, String signatureRecipientPrivateKey) {
+    public static String subscribe(String queueId, byte[] signatureRecipientPrivateKey) {
+
+        String keyBase64 = Base64.getEncoder().encodeToString(signatureRecipientPrivateKey);
         StringBuilder sb = new StringBuilder();
         //create the SUB command with the queueID and the signature of the recipient
-        sb.append("SUB").append(queueId).append(signatureRecipientPrivateKey);
+        sb.append("SUB").append(queueId).append(keyBase64);
         return sb.toString();
     }
 
-    public static String rcvSecure(String queueId, String senderAuthPublicKey) {
+    public static String rcvSecure(String queueId, byte[] senderAuthPublicKey) {
+        String keyBase64 = Base64.getEncoder().encodeToString(senderAuthPublicKey);
         StringBuilder sb = new StringBuilder();
         //create the Secure queue by recipient command with the queueID and sender's public key
-        sb.append("SUB").append(queueId).append(senderAuthPublicKey);
+        sb.append("SUB").append(queueId).append(keyBase64);
         return sb.toString();
     }
 
@@ -72,13 +82,14 @@ public class Commands {
     //    using [NaCl crypto_box][16] encryption scheme (curve25519xsalsa20poly1305).
     //notifierKey = length x509encoded
     //    the notifier's Ed25519 or X25519 public key to verify NSUB command for this queue
-    public static String enableNotifications(String queueId, String notifierKey, String recipientNotificationDhPublicKey) {
+    public static String enableNotifications(String queueId, String notifierKey, byte[] recipientNotificationDhPublicKey) {
+        String keyBase64 = Base64.getEncoder().encodeToString(recipientNotificationDhPublicKey);
         //create the Enable notifications command string to return
         StringBuilder sb = new StringBuilder();
         sb.append("NKEY")
                 .append(queueId)
                 .append(notifierKey)
-                .append(recipientNotificationDhPublicKey);
+                .append(keyBase64);
 
         return sb.toString();
     }
@@ -144,11 +155,12 @@ public class Commands {
     //first message to be sent
     //This command is sent by the sender to the server to add sender's key to the queue
     //Once the queue is secured only authorized messages can be sent to it.
-    public static String sndSecure(String queueId, String senderAuthPublicKey) {
+    public static String sndSecure(String queueId, byte[] senderAuthPublicKey) {
+        String keyBase64 = Base64.getEncoder().encodeToString(senderAuthPublicKey);
         StringBuilder sb = new StringBuilder();
         sb.append("SKEY")
                 .append(queueId)
-                .append(senderAuthPublicKey);
+                .append(keyBase64);
         return sb.toString();
     }
 
@@ -194,7 +206,7 @@ public class Commands {
 
     //If the queue is created successfully, the server must send queueIds response
     // with the recipient's and sender's queue IDs and public key to encrypt delivered message bodies
-    public static QueueIdResponse queueIds(String recipientId, String senderId, String srvDhPublicKey, String sndSecure) {
+    public static QueueIdResponse queueIds(String recipientId, String senderId, byte[] srvDhPublicKey, String sndSecure) {
         QueueIdResponse response = new QueueIdResponse(
                 recipientId,
                 senderId,
@@ -221,7 +233,7 @@ public class Commands {
     // and the notifier's key was successfully added to the queue
     //srvNotificationDhPublicKey - the server's Curve25519 key for DH exchange to derive the secret
     //that the server will use to encrypt notification metadata to the recipient
-    public static NotifierId notifierId(String notifierId, String srvNotificationDhPublicKey) {
+    public static NotifierId notifierId(String notifierId, byte[] srvNotificationDhPublicKey) {
         NotifierId id = new NotifierId(notifierId, srvNotificationDhPublicKey);
         return id;
     }
@@ -242,13 +254,14 @@ public class Commands {
     //2. the server session key is correctly signed with the received certificate.
     //certChain - The certificate chain
     //signedKey - key signed with certificate
-    public static String proxySessionKey(String sessionId, String smpVersionRange, String certChain, String signedKey) {
+    public static String proxySessionKey(String sessionId, String smpVersionRange, String certChain, byte[] signedKey) {
+        String keyBase64 = Base64.getEncoder().encodeToString(signedKey);
         StringBuilder sb = new StringBuilder();
         sb.append("PKEY")
                 .append(sessionId)
                 .append(smpVersionRange)
                 .append(certChain)
-                .append(signedKey);
+                .append(keyBase64);
         return sb.toString();
     }
 
