@@ -16,6 +16,7 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
+import java.nio.ByteBuffer;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -55,6 +56,9 @@ class AppTest {
         InputStream in = socket.getInputStream();
         byte[] paddedResponse = IOUtils.toByteArray(in);
         System.out.println("Response " + new String(paddedResponse, CHARSET));
+        byte[] mainBlockBytes = getMainBlockBytes(paddedResponse);
+        System.out.println(mainBlockBytes);
+        printSmpVersions(mainBlockBytes);
     }
 
     public static byte[] toPaddedString(String message) {
@@ -72,5 +76,37 @@ class AppTest {
             paddedString.put(padSymbol);
         }
         return paddedString.array();
+    }
+
+    public static byte[] getMainBlockBytes(byte[] paddedString) {
+        int high = paddedString[0];
+        int low = paddedString[1];
+        int length = (high << 8) + low;
+
+        //testing if it is only padding
+        for (int i=length+2; i<paddedString.length-1; i++) {
+            if(paddedString[i] != paddedString [i+1]) {
+                System.out.println("not matching in padding for " + paddedString[i] + " and " + paddedString[i+1]);
+            }
+        }
+
+        byte [] mainBlockBytes = new byte[length];
+        for (int i=0; i<length; i++) {
+            mainBlockBytes[i] = paddedString[i+2];
+        }
+
+        return mainBlockBytes;
+    }
+
+    public static void printSmpVersions(byte[] mainBlockBytes) {
+        byte[] smpVersionBytes = new byte[]{mainBlockBytes[0], mainBlockBytes[1], mainBlockBytes[2], mainBlockBytes[3]};
+
+        // Parse the bytes as two Word16 values (16-bit unsigned integers)
+        ByteBuffer buffer = ByteBuffer.wrap(smpVersionBytes);
+        int minVer = buffer.getShort() & 0xFFFF;  // Mask to treat as unsigned
+        int maxVer = buffer.getShort() & 0xFFFF;
+
+        System.out.println("SMP minVersion: " + minVer);
+        System.out.println("SMP maxVersion: " + maxVer);
     }
 }
