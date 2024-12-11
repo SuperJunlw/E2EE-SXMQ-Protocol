@@ -1,7 +1,10 @@
 package client;
 
+import org.apache.commons.io.IOUtils;
+
 import java.io.*;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 
 public class Client {
 
@@ -25,7 +28,7 @@ public class Client {
             writer.println(message);
 
             // server response
-            String response = reader.readLine();
+            String response = IOUtils.toString(input, StandardCharsets.UTF_8);
             System.out.println("Server: " + response);
         } catch (UnknownHostException ex) {
             System.out.println("Can't find server: " + ex.getMessage());
