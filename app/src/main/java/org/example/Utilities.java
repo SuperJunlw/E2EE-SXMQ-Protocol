@@ -1,11 +1,13 @@
-package client;
+package org.example;
 
+import client.Message;
 import com.iwebpp.crypto.TweetNaclFast;
 import java.security.*;
-import org.example.Commands;
 import java.util.Arrays;
 
 public class Utilities {
+
+
 
     //Generate a key pair for establishing a shared secret, use for encryption
     //EK and RDHK
@@ -16,9 +18,9 @@ public class Utilities {
 
     public static KeyPair GenerateCommandAuthorizeKeyPair() throws NoSuchAlgorithmException {
 
-            // Generate the key pair
-            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("Ed25519");
-            KeyPair keyPair = keyPairGenerator.generateKeyPair();
+        // Generate the key pair
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("Ed25519");
+        KeyPair keyPair = keyPairGenerator.generateKeyPair();
 
 //            // Extract the private and public keys
 //            PrivateKey privateKey = keyPair.getPrivate();
@@ -26,7 +28,7 @@ public class Utilities {
 //            // Print the keys
 //            System.out.println("Private Key: " + Arrays.toString(privateKey.getEncoded()));
 //            System.out.println("Public Key: " + Arrays.toString(publicKey.getEncoded()));
-            return keyPair;
+        return keyPair;
     }
 
     //encrypt the message
