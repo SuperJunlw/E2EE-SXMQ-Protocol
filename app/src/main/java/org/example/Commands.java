@@ -1,10 +1,17 @@
 package org.example;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 
 public class Commands {
+
+    static final Charset CHARSET = StandardCharsets.US_ASCII;
+    static final int BLOCK_SIZE = 16384;
+
     public static String queueURI(String serverIdentity,
                                   List<String> hostnames,
                                   String queueId,
@@ -40,25 +47,22 @@ public class Commands {
     }
 
     // Recipient Commands
-    public static String create(byte[] recipientAuthPublicKey,
+    public static ByteBuffer create(byte[] recipientAuthPublicKey,
                                 byte[] recipientDhPublicKey,
                                 String basicAuth,
                                 String subscribeMode,
                                 String sndSecure) {
+        ByteBuffer buffer = ByteBuffer.allocate(BLOCK_SIZE);
 
-        String authKeyBase64 = Base64.getEncoder().encodeToString(recipientAuthPublicKey);
-        String DHKeyBase64 = Base64.getEncoder().encodeToString(recipientDhPublicKey);
+        buffer.put("NEW".getBytes(CHARSET));
+        buffer.put(recipientAuthPublicKey);
+        buffer.put(recipientDhPublicKey);
+        buffer.put(basicAuth.getBytes(CHARSET));
+        buffer.put(subscribeMode.getBytes(CHARSET));
+        buffer.put(sndSecure.getBytes(CHARSET));
+        buffer.flip();
 
-        //create the NEW command string to return
-        StringBuilder sb = new StringBuilder();
-        sb.append("NEW")
-                .append(authKeyBase64)
-                .append(DHKeyBase64)
-                .append(basicAuth)
-                .append(subscribeMode)
-                .append(sndSecure);
-
-        return sb.toString();
+        return buffer;
     }
     public static String subscribe(String queueId, byte[] signatureRecipientPrivateKey) {
 

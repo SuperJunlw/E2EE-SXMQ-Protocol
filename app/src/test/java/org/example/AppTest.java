@@ -11,20 +11,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
-import java.nio.ByteBuffer;
 
+import static org.example.Commands.BLOCK_SIZE;
+import static org.example.Commands.CHARSET;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AppTest {
-    static Charset CHARSET = StandardCharsets.US_ASCII;
-    static int BLOCK_SIZE = 16384;
-
     @Test void appHasAGreeting() {
         App classUnderTest = new App();
         assertNotNull(classUnderTest.getGreeting(), "app should have a greeting");
