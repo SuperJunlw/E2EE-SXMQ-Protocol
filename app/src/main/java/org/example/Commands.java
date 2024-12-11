@@ -54,31 +54,36 @@ public class Commands {
                                 String sndSecure) {
         ByteBuffer buffer = ByteBuffer.allocate(BLOCK_SIZE);
 
-        buffer.put("NEW".getBytes(CHARSET));
+        buffer.put("NEW ".getBytes(CHARSET));
         buffer.put(recipientAuthPublicKey);
         buffer.put(recipientDhPublicKey);
         buffer.put(basicAuth.getBytes(CHARSET));
         buffer.put(subscribeMode.getBytes(CHARSET));
         buffer.put(sndSecure.getBytes(CHARSET));
+        //buffer.putShort((short) 35);
         buffer.flip();
 
         return buffer;
     }
-    public static String subscribe(String queueId, byte[] signatureRecipientPrivateKey) {
+    public static ByteBuffer subscribe() {
 
-        String keyBase64 = Base64.getEncoder().encodeToString(signatureRecipientPrivateKey);
-        StringBuilder sb = new StringBuilder();
-        //create the SUB command with the queueID and the signature of the recipient
-        sb.append("SUB").append(queueId).append(keyBase64);
-        return sb.toString();
+        //create the SUB command
+        ByteBuffer buffer = ByteBuffer.allocate(BLOCK_SIZE);
+        buffer.put("SUB".getBytes(CHARSET));
+        buffer.flip();
+
+        return buffer;
     }
 
-    public static String rcvSecure(String queueId, byte[] senderAuthPublicKey) {
-        String keyBase64 = Base64.getEncoder().encodeToString(senderAuthPublicKey);
-        StringBuilder sb = new StringBuilder();
-        //create the Secure queue by recipient command with the queueID and sender's public key
-        sb.append("SUB").append(queueId).append(keyBase64);
-        return sb.toString();
+    public static ByteBuffer rcvSecure(byte[] senderAuthPublicKey) {
+
+        //create the Secure queue by recipient command with sender's public key
+        ByteBuffer buffer = ByteBuffer.allocate(BLOCK_SIZE);
+        buffer.put("KEY ".getBytes(CHARSET));
+        buffer.put(senderAuthPublicKey);
+        buffer.flip();
+
+        return buffer;
     }
 
     //recipientNotificationDhPublicKey = length x509encoded
@@ -87,58 +92,81 @@ public class Commands {
     //    using [NaCl crypto_box][16] encryption scheme (curve25519xsalsa20poly1305).
     //notifierKey = length x509encoded
     //    the notifier's Ed25519 or X25519 public key to verify NSUB command for this queue
-    public static String enableNotifications(String queueId, String notifierKey, byte[] recipientNotificationDhPublicKey) {
-        String keyBase64 = Base64.getEncoder().encodeToString(recipientNotificationDhPublicKey);
-        //create the Enable notifications command string to return
-        StringBuilder sb = new StringBuilder();
-        sb.append("NKEY")
-                .append(queueId)
-                .append(notifierKey)
-                .append(keyBase64);
+    public static ByteBuffer enableNotifications(byte[] notifierPublicKey, byte[] recipientNotificationDhPublicKey) {
 
-        return sb.toString();
+        //create the Enable notifications command string to return
+        ByteBuffer buffer = ByteBuffer.allocate(BLOCK_SIZE);
+        buffer.put("NKEY ".getBytes(CHARSET));
+        buffer.put(notifierPublicKey);
+        buffer.put(recipientNotificationDhPublicKey);
+        buffer.flip();
+
+        return buffer;
     }
     
-    public static String disableNotifications(String queueId) {
+    public static ByteBuffer disableNotifications() {
 
-        return "NDEL"+queueId;
+        ByteBuffer buffer = ByteBuffer.allocate(BLOCK_SIZE);
+        buffer.put("NDEL".getBytes(CHARSET));
+        buffer.flip();
+
+        return buffer;
     }
-    public static String getMessage(String queueId) {
+    public static ByteBuffer getMessage() {
 
         //The client MUST NOT use SUB and GET command
         // on the same queue in the same transport connection
         // - doing so would create an error.
-        return "GET"+queueId;
+        ByteBuffer buffer = ByteBuffer.allocate(BLOCK_SIZE);
+        buffer.put("GET".getBytes(CHARSET));
+        buffer.flip();
+
+        return buffer;
     }
 
     //msgID to acknowledge a particular message -
     // to prevent double acknowledgement (e.g., when command response times out)
     // resulting in message being lost
-    public static String acknowledge(String msgId) {
-        if (msgId == null || msgId.isEmpty()) {
-            throw new IllegalArgumentException("No Message ID is giving.");
-        }
-        return "ACK"+msgId;
+    public static ByteBuffer acknowledge(String msgId) {
+
+        ByteBuffer buffer = ByteBuffer.allocate(BLOCK_SIZE);
+        buffer.put("ACK".getBytes(CHARSET));
+        buffer.put(msgId.getBytes(CHARSET));
+        buffer.flip();
+
+        return buffer;
     }
 
     //recipient can suspend a queue prior to deleting it to make sure that no messages are lost
-    public static String suspend(String queueId) {
+    public static ByteBuffer suspend() {
 
-        return "OFF"+queueId; // TODO
+        ByteBuffer buffer = ByteBuffer.allocate(BLOCK_SIZE);
+        buffer.put("OFF".getBytes(CHARSET));
+        buffer.flip();
+
+        return buffer;
     }
 
     //The recipient can delete the queue, whether it was suspended or not.
     //All undelivered messages must be deleted as soon as this command is received, before the response is sent.
-    public static String delete(String queueId) {
+    public static ByteBuffer delete() {
 
-        return "DEL" + queueId; // TODO
+        ByteBuffer buffer = ByteBuffer.allocate(BLOCK_SIZE);
+        buffer.put("DEL".getBytes(CHARSET));
+        buffer.flip();
+
+        return buffer;
     }
 
 
-    public static String getQueueInfo(String queueId) {
+    public static ByteBuffer getQueueInfo() {
         // This command is used by the queue recipient to get the debugging
         // information about the current state of the queue.
-        return "QUE" + queueId;
+        ByteBuffer buffer = ByteBuffer.allocate(BLOCK_SIZE);
+        buffer.put("QUE".getBytes(CHARSET));
+        buffer.flip();
+
+        return buffer;
     }
 
     // Sender Commands
@@ -149,24 +177,26 @@ public class Commands {
     //This command is sent to the server by the sender both to confirm the queue after
     // the sender received out-of-band message from the recipient and to send messages
     // after the queue is secured
-    public static String send(String msgFlags, String smpEncMessage) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("SEND")
-                .append(msgFlags)
-                .append(smpEncMessage);
-        return sb.toString();
+    public static ByteBuffer send(String msgFlags, byte[] smpEncMessage) {
+        ByteBuffer buffer = ByteBuffer.allocate(BLOCK_SIZE);
+        buffer.put("SEND ".getBytes(CHARSET));
+        buffer.put(msgFlags.getBytes(CHARSET));
+        buffer.put(smpEncMessage);
+        buffer.flip();
+
+        return buffer;
     }
 
     //first message to be sent
     //This command is sent by the sender to the server to add sender's key to the queue
     //Once the queue is secured only authorized messages can be sent to it.
-    public static String sndSecure(String queueId, byte[] senderAuthPublicKey) {
-        String keyBase64 = Base64.getEncoder().encodeToString(senderAuthPublicKey);
-        StringBuilder sb = new StringBuilder();
-        sb.append("SKEY")
-                .append(queueId)
-                .append(keyBase64);
-        return sb.toString();
+    public static ByteBuffer sndSecure(byte[] senderAuthPublicKey) {
+        ByteBuffer buffer = ByteBuffer.allocate(BLOCK_SIZE);
+        buffer.put("SKEY ".getBytes(CHARSET));
+        buffer.put(senderAuthPublicKey);
+        buffer.flip();
+
+        return buffer;
     }
 
     // Proxy Commands
