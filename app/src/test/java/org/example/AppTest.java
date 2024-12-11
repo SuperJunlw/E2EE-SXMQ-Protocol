@@ -43,15 +43,21 @@ class AppTest {
         };
 
         // Install the all-trusting trust manager
-        SSLContext sc = SSLContext.getInstance("SSL");
+        SSLContext sc = SSLContext.getInstance("TLSv1.3");
         sc.init(null, trustAllCerts, new java.security.SecureRandom());
         SSLSocketFactory sslSocketFactory = sc.getSocketFactory();
-        //SocketFactory sslSocketFactory = SSLSocketFactory.getDefault();
         SSLSocket socket = (SSLSocket) sslSocketFactory.createSocket("smp4.simplex.im", 5223);
         SSLParameters sslParameters = sc.getDefaultSSLParameters();;
         sslParameters.setApplicationProtocols(new String[]{"smp/1"});
-        socket.setSSLParameters(sslParameters);
+        // Explicitly set the enabled protocols to TLS 1.2
+        socket.setEnabledProtocols(new String[]{"TLSv1.2"});
+//        socket.setSSLParameters(sslParameters);
+
+        socket.startHandshake();
+        SSLSession session = socket.getSession();
+
         InputStream in = socket.getInputStream();
+        OutputStream out = socket.getOutputStream();
 
         byte[] paddedServerHello = in.readNBytes(BLOCK_SIZE);
         System.out.println("paddedServerHello:");
@@ -62,8 +68,6 @@ class AppTest {
         System.out.println(mainBlockBytes);
         printSmpVersions(mainBlockBytes);
 
-
-        OutputStream out = socket.getOutputStream();
         byte[] clientHello = new ClientHelloRequest((short) 11).getBytes();
         System.out.println("CONNECTED? " + socket.isConnected() + ", CLOSED? " + socket.isClosed() + ", BOUNDED? " + socket.isBound() + ", IN SHUTDOWN? " + socket.isInputShutdown() + ", OUT SHUTDOWN?" + socket.isOutputShutdown());
         byte[] paddedClientHello = toPaddedString(clientHello);
