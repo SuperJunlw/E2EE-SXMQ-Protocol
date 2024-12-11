@@ -14,6 +14,7 @@ public class Commands {
         //create a string of the host names
         String hostNames = String.join(",", hostnames);
 
+        //need to decode to get the string in order to read
         String keyBase64 = Base64.getEncoder().encodeToString(recipientDhPublicKey);
 
         //combine the parts to create the uri

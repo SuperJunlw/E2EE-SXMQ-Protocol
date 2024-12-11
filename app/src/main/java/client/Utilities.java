@@ -2,6 +2,7 @@ package client;
 
 import com.iwebpp.crypto.TweetNaclFast;
 import java.security.*;
+import org.example.Commands;
 import java.util.Arrays;
 
 public class Utilities {
