@@ -5,15 +5,18 @@ package org.example;
 
 import org.example.request.ClientHelloRequest;
 import org.junit.jupiter.api.Test;
+import org.mozilla.universalchardet.UniversalDetector;
 
 import javax.net.ssl.*;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 
 import static org.example.Commands.BLOCK_SIZE;
@@ -67,6 +70,8 @@ class AppTest {
         byte[] mainBlockBytes = getMainBlockBytes(paddedServerHello);
         System.out.println(mainBlockBytes);
         printSmpVersions(mainBlockBytes);
+        byte[] sessionId = getShortString(mainBlockBytes, 4);
+        System.out.println(sessionId);
 
         byte[] clientHello = new ClientHelloRequest((short) 11).getBytes();
         System.out.println("CONNECTED? " + socket.isConnected() + ", CLOSED? " + socket.isClosed() + ", BOUNDED? " + socket.isBound() + ", IN SHUTDOWN? " + socket.isInputShutdown() + ", OUT SHUTDOWN?" + socket.isOutputShutdown());
@@ -130,4 +135,24 @@ class AppTest {
         System.out.println("SMP minVersion: " + minVer);
         System.out.println("SMP maxVersion: " + maxVer);
     }
+
+    public static byte[] getShortString(byte[] bytes, int startIndex) {
+        byte[] temp = new byte[bytes.length - startIndex];
+        for (int i=0; i<temp.length; i++) {
+            temp[i] = bytes[i+startIndex];
+        }
+        // Parse the shortString
+        ByteBuffer buffer = ByteBuffer.wrap(temp);
+        int length = buffer.get() & 0xFF; // Read length as unsigned byte
+
+        if (length > buffer.remaining()) {
+            throw new IllegalArgumentException("Invalid length: exceeds available data");
+        }
+
+        byte[] stringBytes = new byte[length];
+        buffer.get(stringBytes); // Read the bytes based on the length
+        return stringBytes;
+    }
+
+
 }
