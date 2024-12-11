@@ -3,12 +3,13 @@
  */
 package org.example;
 
-import org.apache.commons.io.IOUtils;
+import org.example.request.ClientHelloRequest;
 import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.*;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -22,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AppTest {
     static Charset CHARSET = StandardCharsets.US_ASCII;
+    static int BLOCK_SIZE = 16384;
 
     @Test void appHasAGreeting() {
         App classUnderTest = new App();
@@ -54,24 +56,43 @@ class AppTest {
         sslParameters.setApplicationProtocols(new String[]{"smp/1"});
         socket.setSSLParameters(sslParameters);
         InputStream in = socket.getInputStream();
-        byte[] paddedResponse = IOUtils.toByteArray(in);
-        System.out.println("Response " + new String(paddedResponse, CHARSET));
-        byte[] mainBlockBytes = getMainBlockBytes(paddedResponse);
+
+        byte[] paddedServerHello = in.readNBytes(BLOCK_SIZE);
+        System.out.println("paddedServerHello:");
+        System.out.println(new String(paddedServerHello, CHARSET));
+
+
+        byte[] mainBlockBytes = getMainBlockBytes(paddedServerHello);
         System.out.println(mainBlockBytes);
         printSmpVersions(mainBlockBytes);
+
+
+        OutputStream out = socket.getOutputStream();
+        byte[] clientHello = new ClientHelloRequest((short) 11).getBytes();
+        System.out.println("CONNECTED? " + socket.isConnected() + ", CLOSED? " + socket.isClosed() + ", BOUNDED? " + socket.isBound() + ", IN SHUTDOWN? " + socket.isInputShutdown() + ", OUT SHUTDOWN?" + socket.isOutputShutdown());
+        byte[] paddedClientHello = toPaddedString(clientHello);
+        out.write(paddedClientHello);
+        System.out.println("Sent clientHello.");
+        byte[] paddedResponse = in.readNBytes(BLOCK_SIZE);
+        System.out.println("Response to clientHello:");
+        System.out.println(new String(paddedResponse, CHARSET));
+        byte[] ping = "PING".getBytes(CHARSET);
+        byte[] paddedPing = toPaddedString(ping);
+        out.write(paddedPing);
+        byte[] paddedPingResponse = in.readNBytes(BLOCK_SIZE);
+        System.out.println("Response to ping:");
+        System.out.println(new String(paddedPingResponse, CHARSET));
     }
 
-    public static byte[] toPaddedString(String message) {
-        int paddedLength = 16384;
+    public static byte[] toPaddedString(byte[] message) {
         byte padSymbol = (byte)'#';
-        byte[] messageBytes = message.getBytes(CHARSET);
-        if (messageBytes.length >= 16384) {
-            throw new RuntimeException("Message must be less than " + paddedLength + " bytes long. Currently it is " + messageBytes.length + " bytes long.");
+        if (message.length >= BLOCK_SIZE) {
+            throw new RuntimeException("Message must be less than " + BLOCK_SIZE + " bytes long. Currently it is " + message.length + " bytes long.");
         }
-        short originalLength = (short) messageBytes.length;
-        ByteBuffer paddedString = ByteBuffer.allocate(16384);
+        short originalLength = (short) message.length;
+        ByteBuffer paddedString = ByteBuffer.allocate(BLOCK_SIZE);
         paddedString.putShort(originalLength);
-        paddedString.put(messageBytes);
+        paddedString.put(message);
         while(paddedString.hasRemaining()) {
             paddedString.put(padSymbol);
         }
