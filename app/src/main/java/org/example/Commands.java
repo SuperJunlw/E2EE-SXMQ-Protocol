@@ -53,8 +53,11 @@ public class Commands {
 
         byte transmissionCount = (byte) transmissions.size();
         transportBlock.put(transmissionCount);
-        transmissions.forEach(transportBlock::put);
-        return transportBlock;
+        for (ByteBuffer transmission : transmissions) {
+            transportBlock.putShort((short) transmission.remaining());
+            transportBlock.put(transmission);
+        }
+        return transportBlock.flip();
     }
 
     /**
