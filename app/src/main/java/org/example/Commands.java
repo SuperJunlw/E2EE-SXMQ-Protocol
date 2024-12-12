@@ -40,10 +40,125 @@ public class Commands {
         return sb.toString();
     }
 
-    //SMP COMMANDS
-    public static String ping() {
+    //TRANSPORT PRIMITIVES
 
-        return "PING";
+    /**
+     * Used to generate a transport block. A single transport block can contain multiple transmissions, with each
+     * transmission containing a single SXMQ command.
+     * @param transmissions An individual transmission. Generate using the transmission() function
+     * @return A new transport block.
+     */
+    public static ByteBuffer transportBlock(List<ByteBuffer> transmissions) {
+        ByteBuffer transportBlock = ByteBuffer.allocate(BLOCK_SIZE);
+
+        byte transmissionCount = (byte) transmissions.size();
+        transportBlock.put(transmissionCount);
+        transmissions.forEach(transportBlock::put);
+        return transportBlock;
+    }
+
+    /**
+     * Used to create a transmission.
+     * @param authorization A shortString. Is empty with the PING command or in server responses. Used with the SEND command.
+     * @param sessionId A shortString. The session identifier returned from the server hello response.
+     * @param corrId See corrId()
+     * @param entityId A shortString. queueId or proxySessionId
+     * @param smpCommand The actual sxmq command. See the SMP COMMANDS section.
+     * @return A new transmission.
+     */
+    public static ByteBuffer transmission(
+            ByteBuffer authorization, // shortString, empty with PING command
+            ByteBuffer sessionId,
+            ByteBuffer corrId,
+            ByteBuffer entityId, // shortString queueId or proxySessionId
+            ByteBuffer smpCommand
+    ) {
+        ByteBuffer transmission = ByteBuffer.allocate(BLOCK_SIZE);
+        transmission.put(authorization);
+        transmission.put(sessionId);
+        transmission.put(corrId);
+        transmission.put(entityId);
+        transmission.put(smpCommand);
+        return transmission.flip();
+    }
+
+    /**
+     * Used to generate a shortString from an array of bytes. Simply returns an array containing the original array's
+     * length followed by the original array.
+     * @param string An array of bytes to turn into a shortString.
+     * @return A new shortString.
+     */
+    public static ByteBuffer shortString(byte[] string) {
+        ByteBuffer shortString = ByteBuffer.allocate(string.length + 1);
+        shortString.put((byte) string.length);
+        shortString.put(string);
+        return shortString.flip();
+    }
+
+    /**
+     * Generate a shortString for an empty array. Simply returns an array containing the byte 0x00.
+     * @return an empty shortString
+     */
+    public static ByteBuffer emptyShortString() {
+        ByteBuffer emptyShortString = ByteBuffer.allocate(1);
+        emptyShortString.put((byte) 0);
+        return emptyShortString.flip();
+    }
+
+    /**
+     * Creates a new corrId object. It takes a byte array of length 24 and returns a new array containing the  byte
+     * 0x18 followed by the original array
+     * @param randomCorrelationId A byte array of length 24
+     * @return A new corrId
+     */
+    public static ByteBuffer corrId(byte[] randomCorrelationId) {
+        if (randomCorrelationId.length != 24) {
+            throw new RuntimeException("randomCorrelationId must have a length of 24");
+        }
+        ByteBuffer corrId = ByteBuffer.allocate(25);
+        corrId.put((byte) 0x18); // indicates that a randomCorrelationId is present
+        corrId.put(randomCorrelationId);
+        return corrId.flip();
+    }
+
+    /**
+     * Generates a client hello request containing the chosen SXMQ protocol version.
+     * @param protocolVersion The chosen protocol version
+     * @return a client hello request
+     */
+    public static ByteBuffer clientHello(short protocolVersion) {
+        ByteBuffer b = ByteBuffer.allocate(2);
+        b.putShort(protocolVersion);
+        return b.flip();
+    }
+
+    /**
+     * Pads either a transportBlock or a clientHello to a length of 16384
+     * @param message a transportBlock or a clientHello
+     * @return A padded transportBlock or a padded clientHello. This can then be sent to the SXMQ server.
+     */
+    public static byte[] paddedString(ByteBuffer message) {
+        byte padSymbol = (byte)'#';
+        if (message.remaining() >= BLOCK_SIZE) {
+            throw new RuntimeException("Message must be less than " + BLOCK_SIZE + " bytes long. Currently it is " +
+                    message.remaining() + " bytes long.");
+        }
+        short originalLength = (short) message.remaining();
+        ByteBuffer paddedString = ByteBuffer.allocate(BLOCK_SIZE);
+        // add the block size to the beginning of the paddedString
+        paddedString.putShort(originalLength);
+        // add the message immediately after
+        paddedString.put(message);
+        // fill the remainder of the buffer with '#'
+        while(paddedString.hasRemaining()) {
+            paddedString.put(padSymbol);
+        }
+        return paddedString.array();
+    }
+
+    //SMP COMMANDS
+    public static ByteBuffer ping() {
+        return ByteBuffer.wrap("PING".getBytes(CHARSET));
     }
 
     // Recipient Commands

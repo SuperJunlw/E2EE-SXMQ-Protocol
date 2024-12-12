@@ -32,6 +32,7 @@ dependencies {
     implementation 'commons-io:commons-io:2.18.0'
 
     implementation 'com.github.albfernandez:juniversalchardet:2.4.0'
+    implementation 'org.apache.commons:commons-lang3:3.17.0'
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
